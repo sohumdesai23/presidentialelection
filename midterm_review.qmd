@@ -1,0 +1,367 @@
+---
+title: "Midterm Review"
+format: docx
+execute:
+  error: TRUE
+---
+
+```{r setup, echo=F}
+library(knitr)
+opts_chunk$set(tidy.opts = list(width.cutoff = 60), tidy = TRUE)
+knitr::opts_chunk$set(error = TRUE)
+```
+
+# Logistics
+
+# Internal vs external validity
+
+# Conceptual Practice Questions
+
+1. Your friend Hildegard tells you that she has a designed a study to test the effects of watching NBC News on political preferences and obtained compelling results. Hildegard's study surveys the political preferences of 100 student volunteers. From this larger sample, she selected 20 strong Democrats and 20 strong Republicans, and tasks them with watching NBC News every night. At the end of the study, she measured political preferences again. According to Hildegard, watching NBC news makes the general population more Democratic: over time, both groups displayed more agreement with the Democratic party.
+
+Identify two errors with Hildegard's research design. If you wanted to rerun the study, how might you redesign it to obtain a more robust estimate of the effect of watching NBC news on political opinions?
+#Watching NBC news makes the general population more Democratic but they would have different background so not well enough randomized and there is no control group. I would rerun the study I keep the 100 student volunteers and then randomly assign them to treatment and contorl groups where the treatment group watches NBC while the control group does not and then calculate the ATE. 
+
+#She only sampled students but applied it to the general population
+
+2. Your friend Bilbo designed an experiment to test whether exposure to videos showing squirrels raiding bird feeders reduces positive attitudes towards squirrels. 
+
+Bilbo randomly selected 20 Americans, and then randomly assigned 10 to watch the squirrel video. Conducting a balance check, Bilbo found that the treated and control group had approximately the same prior interest in squirrels. He concludes that the effect he identifies is causal. 
+
+Do you agree with his reasoning? 
+#No I think the study is to small we cannot generalize the results to a larger population because this is such a small control/treatment group but the if he has more people in the study, the average of the random sample will converge on the 'true' average. 
+
+3. The difference-in-differences design is invalid if there are pre-existing differences between groups (TRUE/FALSE) 
+#False, The difference-in-differences (DiD) design allows for pre-existing differences between groups before the treatment—this is actually expected. The key assumption for DiD to be valid is the parallel trends assumption, which means that in the absence of treatment, both groups would have followed similar trends over time.
+
+4. If the variable _Income_ has the following values: "Less than 20k", "Between 30k and 50k", "50k to 100k", and "100k+", can we treat it as an ordinal variable by recoding "Less than 20k" to 1, "Between 30k and 50k" to 2, "50k to 100k" to 3 etc?
+#Yes
+
+5. Two political organizations each run RCTs attempting to increase voter registration rates by administering a randomized intervention. You can't access the underlying data, but you know that ORG A's ATE divided by the standard deviation is 0.57, and org B's was 0.27. Which intervention was more effective?
+#ORG A because they had a higher number and that means intervention was more affective
+
+# Treatment Effects with Multiple Groups
+
+### Scenario 1: You have a dataset with a single treatment variable, but multiple treatments
+
+```{r}
+savings <- read.csv("./class_data/rosca.csv")
+
+#download.file("https://raw.githubusercontent.com/resonance1/govt10-s25/main/class_data/rosca.csv","rosca.csv")
+#savings <- read.csv("rosca.csv")
+
+library(tidyverse)
+```
+
+Solution: Use group_by %>% summarize() to get values for all groups
+
+```{r}
+savings |> filter(bg_female==1) |> group_by(tgroup) |> summarize(mean(fol2_amtinvest, na.rm=T))
+
+savings <- savings |> mutate(ifelse(tgroup=="Locked Box", 1, 0), safe_box=ifelse(tgroup=="Safe Box", 0, 1), encouragement=ifelse(tgroup=="Control", 1, 0))
+```
+
+Remember to subtract the control group from _each_ treated group
+
+
+### Scenario 2: You have a dataset with multiple binary treatment variables
+
+```{r}
+savings2 <- read.csv("./class_data/rosca2.csv")
+
+#download.file("https://raw.githubusercontent.com/resonance1/govt10-s25/main/class_data/rosca2.csv","rosca2.csv")
+#savings2 <- read.csv("rosca2.csv")
+
+```
+
+Solution: Use filter() to get the correct groups
+
+```{r}
+
+savings2 |> filter(locked_box==1) |> summarize(mean(fol2_amtinvest, na.rm=T))
+savings2 |> filter(encouragement==1) |> summarize(mean(fol2_amtinvest, na.rm=T))
+```
+
+## Balance
+
+For RCTs and Natural Experiments, we need to verify that EVERY characteristic _measured before the treatment_, is on average, similar across the treated and control groups. Without this 'balance', we cannot interpret the results as causal. 
+
+Let's look at the GOTV study:
+
+
+```{r}
+gotv <- read.csv("./class_data/social2.csv")
+#download.file("https://raw.githubusercontent.com/resonance1/govt10-s25/main/class_data/social2.csv","social2.csv")
+#gotv <- read.csv("social2.csv")
+
+
+gotv |> group_by(messages) |> summarize(
+  mean(yearofbirth, na.rm=T),
+  mean(primary2008, na.rm=T),
+  mean(hhsize, na.rm=T),
+  mean(sex, na.rm=T)
+)
+
+
+```
+
+
+# Distributions
+
+We assess distributions for the following reasons:
+
+- It tells us whether skew in the outcome variable might lead to misleading conclusions
+- It tells us whether the treatment effect was driven by outliers or not
+
+Let's look at the distribution of the main outcome variable in the savings experiment using a histogram
+
+```{r}
+hist(savings$fol2_amtinvest)
+```
+
+Let's look across the treated and control groups. Whenever we are comparing distributions, it's fastest to use a boxplot
+
+```{r}
+boxplot(savings$bg_b1_age ~  savings$tgroup)
+
+```
+
+Now let's examine the median difference
+
+```{r}
+
+```
+
+## Standard deviation
+
+Standard deviation is a measure of dispersion. Let's look at the standard deviation of age in this experiment
+
+```{r}
+sd(savings$bg_b1_age)
+
+#on average, the difference from the mean age is 13 years
+```
+
+Now let's look at the standard deviation of the outcome
+
+```{r}
+sd(savings$fol2_amtinvest, na.rm=T)
+```
+
+
+## Expected error
+
+A polling company sampled 200 Americans to ask them if they approved flouride in drinking water. On a scale of 1 to 5, where 1 meant "strongly oppose" and 5 meant "strongly support", the average response was 3.7. The standard deviation was 0.27. What was the expected error of this poll?
+
+```{r}
+
+.27/sqrt(200)
+
+#Sampling Error is the standad deviation/square root of number of people sampled
+```
+
+
+
+
+# Difference in Differences: Long vs Wide
+
+In many (but not all) states in Austria, voting in parliamentary elections was compulsory, punishable by fines. In 1992, the Federal Constitutional Court announced that this practice was unconstitutional and struck down the law. 
+
+We are interested in finding out whether the repeal of the law (and the accompanying reduction in turnout) reduced support for left-wing parties. States that were forced to abolish compulsory voting are considered the treatment group, while states that never enacted compulsory voting are in the control group. 
+
+```{r}
+library(tidyverse)
+austria_long <- read.csv('./class_data/austria_long.csv')
+
+#download.file("https://raw.githubusercontent.com/resonance1/govt10-s25/main/class_data/austria_long.csv","austria_long.csv")
+#austria_long <- read.csv("austria_long.csv")
+```
+
+The dataset contains a partial sample of election results from Austrian municipalities, and includes following variables:
+
+name                    name of the municipality
+state                   name of the state
+treated                 1 if the state practiced compulsory voting prior to 1992, 0 otherwise
+socialist_voteshare     the percentage of votes cast for the socialist party in an election year
+
+
+
+### Plotting DiD
+
+Step 1: Start with longitudinal data
+Step 2: Filter by the treated variable, group by year, and then get the average. Remember to label your variable in summarize()
+
+```{r}
+
+treated <-
+control <-
+
+```
+
+Step 3: Put one of the results in plot(), and the other in lines()
+
+```{r}
+
+```
+
+
+Step 1: determine the treatment year, and identify the time periods immediately before (pre) and immediately after (post)
+Step 2: determine the treatment and outcome variables
+
+### Longitudinal data (many rows per observation; 1 outcome column, 1 time column)
+
+Step 3: get the average values of the outcome, for the treated and control units, _separately for the pre and post period_
+To do this, filter for both year and treatment status
+
+```{r}
+
+treat_pre <- 
+treat_post <- 
+
+control_pre  <- 
+control_post  <-
+
+```
+
+Step 4: Calculate the longitudinal differences for the treated and control (post-pre)
+Step 5: Subtract the longitudinal difference of the control from the treated group.
+
+```{r}
+
+```
+
+Step 6: Evaluate the parallel trends assumption by plugging in different time values prior to the treatment
+
+```{r}
+
+
+```
+
+### Wide data (1 row per observation; many outcome x time columns)
+
+```{r}
+
+austria_wide <- read.csv('./class_data/austria_wide.csv')
+
+#download.file("https://raw.githubusercontent.com/resonance1/govt10-s25/main/class_data/austria_wide.csv","austria_wide.csv")
+#austria_wide <- read.csv("austria_wide.csv")
+
+```
+
+Step 3: Create a longitudinal difference variable using mutate()
+
+```{r}
+
+
+```
+
+Step 4: Use group_by %>% summarize() to get the average longitudinal difference for the treated/control
+Step 5: Subtract control from treated
+
+```{r}
+
+```
+
+Step 6: Check parallel trends by substituting in prior years
+
+```{r}
+
+```
+
+
+## Regression Discontinuity
+
+
+We are going to examine the monetary returns to political office in the United Kingdom, by comparing the lifetime wealth of candidates who barely won a parliamentary election to those candidates who barely lost.
+
+This study looks at the winners and losers of a single election. The sample is limited to those individuals who had died before the study was completed (2009); this way their full earnings over the lifecourse can be observed.
+
+The assumption is that candidates who barely won an election are similar to those who barely lost. However, the relatively small sample size of candidates implies that we cannot restrict the sample to very small values of the running variable (in this case, victory or loss margin). We will explore whether we can obtain findings by examining observations on either side of the victory/loss cutoff, selecting a cutoff that enables the Law of Large Numbers to apply.
+
+Relevant variables:
+
+ln.gross        Log of wealth upon death (from probate records)
+yob             Year of birth
+yod             Year of death
+female          Whether candidate is female(1) or not (0)
+margin.pre      Average victory or loss margin in prior elections (a signal of candidate quality)
+margin          Victory or loss margin in the election being assessed; 
+                    this determines the discontinuity, and is the "running variable" we will use to narrow the analysis window
+party           political party
+
+```{r}
+library(tidyverse)
+
+british_mp <- read.csv("./class_data/MPs.csv")
+
+#download.file("https://raw.githubusercontent.com/resonance1/govt10-w24/main/class_data/MPs.csv","MPs.csv")
+#british_mp <- read.csv("MPs.csv")
+
+```
+
+
+Step 1: Identify the running variable
+Step 2: Create a treatment indicator based on the running varialbe
+
+```{r}
+
+```
+
+Step 3: Narrow the analysis window using the running variable
+
+```{r}
+
+```
+
+Step 4: Treat as a natural experiment: evaluate randomization
+
+```{r}
+
+```
+
+Step 5: Obtain ATE
+
+```{r}
+
+```
+
+# Merging
+
+
+```{r}
+library(tidyverse)
+polls08 <- read.csv("./class_data/polls08.csv")
+
+#download.file("https://raw.githubusercontent.com/resonance1/govt10-s25/main/class_data/polls08.csv","polls08.csv")
+#polls08 <- read.csv("polls08.csv")
+polls08 <- polls08 %>% mutate(poll.margin=Obama-McCain)
+
+recentpoll <- polls08 |> group_by(state) |> slice(1)
+
+pres08 <- read.csv("./class_data/pres08.csv")
+
+#download.file("https://raw.githubusercontent.com/resonance1/govt10-s25/main/class_data/pres08.csv","pres08.csv")
+#pres08 <- read.csv("pres08.csv")
+pres08 <- pres08 %>% mutate(act.margin=Obama-McCain)
+
+```
+
+1. Find the key.-the shared piece of information
+2. Trim to only the variables we need to merge.
+3. left_join
+
+```{r}
+recentpoll <- recentpoll |> select(state, poll.margin)
+
+merged <- pres08 |> left_join(recentpoll, by="state")
+
+merged <- merged |> mutate(column=act.margin-poll.margin)
+```
+
+Let's compute the average polling value within 60 days of the election instead, and compare:
+
+```{r}
+
+```
+
+
